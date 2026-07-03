@@ -15,7 +15,7 @@ and RAG, instead of a fixed classifier on a fixed dataset.
 - DB: PostgreSQL
 - Vector store: ChromaDB
 - Embeddings: sentence-transformers (HuggingFace)
-- LLM: Anthropic API (Claude)
+- LLM: Gemini
 - Auth: basic email/password, user-scoped data (no OAuth/SSO for now)
 - Deployment target: Docker + docker-compose, AWS EC2, GitHub Actions CI
 - Billing: Stripe — stretch goal only, not required for MVP
