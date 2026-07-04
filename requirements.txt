@@ -4,3 +4,5 @@ sqlalchemy
 psycopg2-binary
 google-genai
 python-dotenv
+nltk
+sentence-transformers
