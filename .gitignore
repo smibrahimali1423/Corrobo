@@ -10,3 +10,4 @@ env/
 .ruff_cache/
 dist/
 build/
+chroma_data/

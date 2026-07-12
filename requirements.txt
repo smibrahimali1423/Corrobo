@@ -6,3 +6,4 @@ google-genai
 python-dotenv
 nltk
 sentence-transformers
+chromadb
