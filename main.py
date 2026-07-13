@@ -51,8 +51,15 @@ def list_submissions(db: Session = Depends(get_db)):
 
 
 def _check_single_claim(submission_id: int, claim: str) -> CheckResult:
-    evidence = retrieve_relevant_chunks(submission_id, claim)
-    judgment = judge_claim(claim, evidence)
+    try:
+        evidence = retrieve_relevant_chunks(submission_id, claim)
+        judgment = judge_claim(claim, evidence)
+    except Exception as exc:
+        # Broad catch is intentional: this wraps an external API call, and a
+        # transient failure on one claim shouldn't discard already-successful
+        # judgments for the other claims in the same /check-summary batch.
+        return CheckResult(claim=claim, verdict="ERROR", reason=str(exc), evidence=[])
+
     return CheckResult(
         claim=claim,
         verdict=judgment.verdict,
