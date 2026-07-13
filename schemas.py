@@ -15,3 +15,14 @@ class SubmissionOut(BaseModel):
     source_document: str
     summary: str
     created_at: datetime
+
+
+class ClaimCheck(BaseModel):
+    claim: str
+
+
+class CheckResult(BaseModel):
+    claim: str
+    verdict: str
+    reason: str
+    evidence: list[str]
