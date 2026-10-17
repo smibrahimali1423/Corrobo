@@ -30,7 +30,10 @@ and RAG, instead of a fixed classifier on a fixed dataset.
   Stripe stub if time allows
 
 ## Current phase
-Week 1 — basic API skeleton, first LLM call, PostgreSQL storage. No RAG, no auth yet.
+Full MVP scaffolded (see README.md, DECISIONS.md): RAG pipeline, email/password auth with
+user-scoped data, Alembic migrations, React frontend, tests, Docker, CI, and Terraform for
+AWS EC2. Next: work through the Tier 1 review notes in DECISIONS.md §9, then the manual
+AWS steps in docs/DEPLOYMENT.md.
 
 ## How I want you to work with me
 I've always used AI for coding and want to actually learn properly here — not just
@@ -72,4 +75,5 @@ auth boilerplate (login, session/JWT handling).
 - Prioritize code I can explain confidently in an interview over code that's merely working
 
 ## Not yet built
-RAG pipeline, auth, tests, Docker, CI, deployment
+Live AWS deployment (infra code exists; needs the manual steps), rate limiting, password
+reset, background jobs for long checks, Stripe (stretch). See DECISIONS.md §10.
