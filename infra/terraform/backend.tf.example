@@ -1,0 +1,11 @@
+# Optional remote state. Create the bucket once (manually), then:
+#   cp backend.tf.example backend.tf && terraform init -migrate-state
+terraform {
+  backend "s3" {
+    bucket       = "REPLACE-ME-corrobo-tfstate"
+    key          = "corrobo/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}

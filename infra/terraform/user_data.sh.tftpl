@@ -1,0 +1,61 @@
+#!/bin/bash
+# First-boot setup for the Corrobo app server (Amazon Linux 2023).
+# Rendered by Terraform's templatefile(): $${...} is a literal bash variable.
+# Log: /var/log/corrobo-bootstrap.log
+set -euxo pipefail
+exec > >(tee -a /var/log/corrobo-bootstrap.log) 2>&1
+
+# ---- Docker + Compose plugin -------------------------------------------------
+dnf install -y docker
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/${docker_compose_version}/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# ---- Data volume -------------------------------------------------------------
+# On Nitro instances EBS volumes appear as /dev/nvmeXn1 with the volume id
+# (minus the dash) as the serial, so find the device by serial, not by name.
+SERIAL="$(echo "${data_volume_id}" | tr -d '-')"
+DEVICE=""
+for _ in $(seq 1 60); do
+  NAME="$(lsblk -dno NAME,SERIAL | awk -v s="$SERIAL" '$2 == s {print $1}')"
+  if [ -n "$NAME" ]; then DEVICE="/dev/$NAME"; break; fi
+  sleep 5
+done
+if [ -z "$DEVICE" ]; then
+  echo "Data volume ${data_volume_id} never attached" >&2
+  exit 1
+fi
+
+# Format only if the volume is blank (never wipe existing data on re-attach).
+if ! blkid "$DEVICE"; then
+  mkfs.xfs "$DEVICE"
+fi
+mkdir -p /data
+UUID="$(blkid -s UUID -o value "$DEVICE")"
+grep -q "$UUID" /etc/fstab || echo "UUID=$UUID /data xfs defaults,nofail 0 2" >> /etc/fstab
+mount -a
+mkdir -p /data/postgres /data/chroma /data/caddy
+chown 1000:1000 /data/chroma # the API container runs as uid 1000 (appuser)
+
+# ---- App files ---------------------------------------------------------------
+mkdir -p /opt/corrobo
+cd /opt/corrobo
+echo "${compose_file_b64}" | base64 -d > docker-compose.prod.yml
+echo "${caddyfile_b64}" | base64 -d > Caddyfile
+echo "${deploy_script_b64}" | base64 -d > deploy.sh
+chmod +x deploy.sh
+
+cat > deploy.conf <<CONF
+AWS_REGION=${aws_region}
+ECR_REPOSITORY_URL=${ecr_repository_url}
+SSM_PREFIX=${ssm_prefix}
+SITE_ADDRESS=${site_address}
+CORS_ORIGINS=${cors_origins}
+CONF
+
+# First deploy. Expected to fail until an image has been pushed to ECR and the
+# SSM secrets exist -- the GitHub deploy workflow (or a manual run of
+# /opt/corrobo/deploy.sh) completes it later. Don't fail the bootstrap on it.
+./deploy.sh latest || echo "Initial deploy skipped; run /opt/corrobo/deploy.sh once ready."

@@ -1,0 +1,50 @@
+# Production stack on the EC2 host (installed to /opt/corrobo by Terraform's
+# user_data; driven by deploy.sh). Values come from /opt/corrobo/.env, which
+# deploy.sh renders from SSM Parameter Store -- no secrets live in this file.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: corrobo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: corrobo
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corrobo -d corrobo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No ports: only reachable from the api container on the compose network.
+
+  api:
+    image: ${API_IMAGE:?set in .env}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://corrobo:${POSTGRES_PASSWORD}@db:5432/corrobo
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:?set in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SEED_DEMO: ${SEED_DEMO:-false}
+    volumes:
+      - /data/chroma:/app/chroma_data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    # Reverse proxy. With SITE_ADDRESS set to a domain, Caddy obtains and
+    # renews a Let's Encrypt certificate automatically; ":80" = plain HTTP.
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /data/caddy:/data
+    depends_on:
+      - api
