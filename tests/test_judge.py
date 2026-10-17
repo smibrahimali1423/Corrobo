@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from judge import Judgment, judge_claim
 
 
@@ -30,3 +32,10 @@ def test_judge_claim_handles_no_evidence():
     assert result.verdict == "UNVERIFIABLE"
     call_kwargs = mock_client.models.generate_content.call_args.kwargs
     assert "(no evidence retrieved)" in call_kwargs["contents"]
+
+
+def test_judge_claim_raises_when_response_unparseable():
+    with patch("judge.genai.Client") as mock_client_cls:
+        mock_client_cls.return_value.models.generate_content.return_value = MagicMock(parsed=None)
+        with pytest.raises(ValueError):
+            judge_claim("Some claim", ["evidence"])

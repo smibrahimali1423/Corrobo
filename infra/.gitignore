@@ -1,0 +1,7 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+# Commit .terraform.lock.hcl after your first real `terraform init`
+# (it pins provider checksums for all platforms you run on).

@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["frontend", "infra"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = [
+    "B008",   # FastAPI's Depends(...) in argument defaults is idiomatic
+    "UP017",  # keep timezone.utc (matches existing code style)
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+exclude = ["^frontend/", "^infra/", "^\\.venv/"]
+explicit_package_bases = true

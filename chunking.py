@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import nltk
 from nltk.tokenize.punkt import PunktParameters, PunktSentenceTokenizer
 from transformers import AutoTokenizer
@@ -32,15 +34,18 @@ _punkt_params = PunktParameters()
 _punkt_params.abbrev_types.update(_CLINICAL_ABBREVIATIONS)
 _SENT_TOKENIZER = PunktSentenceTokenizer(_punkt_params)
 
-_TOKENIZER = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
+# Lazy for the same reason as embeddings._get_model: no network/disk at import.
+@lru_cache
+def _get_tokenizer():
+    return AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 
 
 def _token_count(text: str) -> int:
-    return len(_TOKENIZER.encode(text, add_special_tokens=False))
+    return len(_get_tokenizer().encode(text, add_special_tokens=False))
 
 
 def _split_oversized_sentence(sentence: str, max_tokens: int) -> list[str]:
-    encoding = _TOKENIZER(sentence, add_special_tokens=False, return_offsets_mapping=True)
+    encoding = _get_tokenizer()(sentence, add_special_tokens=False, return_offsets_mapping=True)
     offsets = encoding["offset_mapping"]
     windows = [offsets[i : i + max_tokens] for i in range(0, len(offsets), max_tokens)]
     return [

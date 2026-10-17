@@ -1,83 +1,49 @@
-from fastapi import Depends, FastAPI, HTTPException
-from google import genai
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+import logging
+from pathlib import Path
 
-from chunking import chunk_text
-from claims import extract_claims
-from database import Base, engine, get_db
-from embeddings import retrieve_relevant_chunks, store_chunks
-from judge import judge_claim
-from models import Submission
-from schemas import CheckResult, ClaimCheck, SubmissionCreate, SubmissionOut
+from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-Base.metadata.create_all(bind=engine)
+from config import get_settings
+from routers import auth, submissions, system
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO)
 
+# Schema is managed by Alembic (`alembic upgrade head`), not create_all().
+app = FastAPI(title="Corrobo", version="0.1.0")
 
-@app.get("/")
-def read_root():
-    return {"status": "running"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().cors_origin_list,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-@app.get("/llm-ping")
-def llm_ping():
-    client = genai.Client()
-    response = client.models.generate_content(
-        model="gemini-3.5-flash", contents="Reply with a single word: pong"
-    )
-    return {"reply": response.text}
+api = APIRouter(prefix="/api")
+api.include_router(system.router)
+api.include_router(auth.router)
+api.include_router(submissions.router)
+app.include_router(api)
 
 
-@app.post("/submissions", response_model=SubmissionOut)
-def create_submission(payload: SubmissionCreate, db: Session = Depends(get_db)):
-    submission = Submission(
-        source_document=payload.source_document, summary=payload.summary
-    )
-    db.add(submission)
-    db.commit()
-    db.refresh(submission)
-
-    chunks = chunk_text(submission.source_document)
-    store_chunks(submission.id, chunks)
-
-    return submission
+def _frontend_dist() -> Path:
+    return Path(get_settings().frontend_dist).resolve()
 
 
-@app.get("/submissions", response_model=list[SubmissionOut])
-def list_submissions(db: Session = Depends(get_db)):
-    return db.execute(select(Submission)).scalars().all()
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend(full_path: str):
+    """Serve the built React app, falling back to index.html for client routes."""
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
 
+    dist = _frontend_dist()
+    index = dist / "index.html"
+    if not index.is_file():
+        return {"status": "running", "detail": "Frontend not built; API docs at /docs"}
 
-def _check_single_claim(submission_id: int, claim: str) -> CheckResult:
-    try:
-        evidence = retrieve_relevant_chunks(submission_id, claim)
-        judgment = judge_claim(claim, evidence)
-    except Exception as exc:
-        # Broad catch is intentional: this wraps an external API call, and a
-        # transient failure on one claim shouldn't discard already-successful
-        # judgments for the other claims in the same /check-summary batch.
-        return CheckResult(claim=claim, verdict="ERROR", reason=str(exc), evidence=[])
-
-    return CheckResult(
-        claim=claim,
-        verdict=judgment.verdict,
-        reason=judgment.reason,
-        evidence=evidence,
-    )
-
-
-@app.post("/submissions/{submission_id}/check", response_model=CheckResult)
-def check_claim(submission_id: int, payload: ClaimCheck):
-    return _check_single_claim(submission_id, payload.claim)
-
-
-@app.post("/submissions/{submission_id}/check-summary", response_model=list[CheckResult])
-def check_summary(submission_id: int, db: Session = Depends(get_db)):
-    submission = db.get(Submission, submission_id)
-    if submission is None:
-        raise HTTPException(status_code=404, detail="Submission not found")
-
-    claims = extract_claims(submission.summary)
-    return [_check_single_claim(submission_id, claim) for claim in claims]
+    candidate = (dist / full_path).resolve()
+    if full_path and candidate.is_file() and candidate.is_relative_to(dist):
+        return FileResponse(candidate)
+    return FileResponse(index)

@@ -3,6 +3,8 @@ from typing import Literal
 from google import genai
 from pydantic import BaseModel
 
+from config import get_settings
+
 _JUDGE_PROMPT = """You are a fact-checking assistant. You are given EVIDENCE excerpts \
 from a source document, and a CLAIM taken from a summary of that document.
 
@@ -39,8 +41,10 @@ def judge_claim(claim: str, evidence: list[str]) -> Judgment:
 
     client = genai.Client()
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model=get_settings().gemini_model,
         contents=prompt,
         config={"response_mime_type": "application/json", "response_schema": Judgment},
     )
+    if not isinstance(response.parsed, Judgment):
+        raise ValueError("Gemini returned no parseable judgment")
     return response.parsed
