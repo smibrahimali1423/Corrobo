@@ -83,7 +83,7 @@ export function SubmissionPage() {
           <h2>Summary</h2>
           <p className="prewrap">{submission.summary}</p>
           <h2>Source document</h2>
-          <p className="muted small">{submission.chunk_count} chunks indexed</p>
+          <p className="muted small">{submission.chunk_count} {submission.chunk_count === 1 ? "chunk" : "chunks"} indexed</p>
           <div className="source prewrap">{submission.source_document}</div>
         </section>
 

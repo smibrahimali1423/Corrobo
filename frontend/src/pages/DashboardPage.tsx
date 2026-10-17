@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import type { SubmissionListItem } from "../types";
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export function DashboardPage() {
   const [items, setItems] = useState<SubmissionListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +45,8 @@ export function DashboardPage() {
               </Link>
               <p className="muted clamp">{s.summary}</p>
               <p className="small muted">
-                {new Date(s.created_at).toLocaleString()} · {s.chunk_count} chunks ·{" "}
-                {s.check_count} {s.check_count === 1 ? "check" : "checks"}
+                {new Date(s.created_at).toLocaleString()} · {plural(s.chunk_count, "chunk")} ·{" "}
+                {plural(s.check_count, "check")}
               </p>
             </li>
           ))}
