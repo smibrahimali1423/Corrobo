@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from google import genai
 from sqlalchemy import select
@@ -11,9 +13,14 @@ from judge import judge_claim
 from models import Submission
 from schemas import CheckResult, ClaimCheck, SubmissionCreate, SubmissionOut
 
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")

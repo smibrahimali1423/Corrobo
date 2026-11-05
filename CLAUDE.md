@@ -30,7 +30,10 @@ and RAG, instead of a fixed classifier on a fixed dataset.
   Stripe stub if time allows
 
 ## Current phase
-Week 1 — basic API skeleton, first LLM call, PostgreSQL storage. No RAG, no auth yet.
+Week 3 complete — RAG pipeline (chunking, embeddings, ChromaDB retrieval), LLM judgment
+(`/check`, `/check-summary`), PyTest suite, Dockerfile, docker-compose, and GitHub
+Actions CI are all built, committed, and verified working (containers run correctly
+locally, CI passes on GitHub). Next up: Week 4 — deploy to AWS EC2. No auth yet.
 
 ## How I want you to work with me
 I've always used AI for coding and want to actually learn properly here — not just
@@ -72,4 +75,4 @@ auth boilerplate (login, session/JWT handling).
 - Prioritize code I can explain confidently in an interview over code that's merely working
 
 ## Not yet built
-RAG pipeline, auth, tests, Docker, CI, deployment
+Auth, AWS EC2 deployment, frontend, Stripe stub

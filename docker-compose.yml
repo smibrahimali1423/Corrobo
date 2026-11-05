@@ -18,7 +18,7 @@ services:
   api:
     build: .
     environment:
-      DATABASE_URL: postgresql://corrobo:changeme@db:5432/corrobo
+      DATABASE_URL: postgresql+psycopg2://corrobo:changeme@db:5432/corrobo
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     ports:
       - "8000:8000"
