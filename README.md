@@ -7,8 +7,8 @@ breaks the summary into atomic claims, retrieves the most relevant passages of t
 each claim (RAG), and asks an LLM judge whether each claim is **supported**, **contradicted**, or
 **unverifiable** from the evidence alone.
 
-It grew out of an earlier group project on MedHAL (hallucination detection in clinical language
-models with a fine-tuned BioClinicalBERT), recast as a live tool built on modern LLM APIs and retrieval.
+It extends earlier work on MedHAL (hallucination detection in clinical language models with a
+fine-tuned BioClinicalBERT) into a live tool built on modern LLM APIs and retrieval.
 
 ## Architecture
 
