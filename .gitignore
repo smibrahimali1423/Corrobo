@@ -11,3 +11,6 @@ env/
 dist/
 build/
 chroma_data/
+
+# local notes
+CLAUDE.md
